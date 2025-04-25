@@ -1,0 +1,44 @@
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# 📧 Configuración del correo
+EMAIL_ADDRESS = "pruebakey011@gmail.com"
+EMAIL_PASSWORD = "tdrz unsz fkve gyrp"
+EMAIL_DESTINO = EMAIL_ADDRESS  
+
+# ✉ Crear el mensaje
+msg = MIMEMultipart()
+msg['From'] = EMAIL_ADDRESS
+msg['To'] = EMAIL_DESTINO
+msg['Subject'] = "Actualización mensual - Departamento de Finanzas"
+
+# 📝 Cuerpo del mensaje (neutro y profesional)
+cuerpo = """
+Hola,
+
+Adjunto el enlace solicitado por dirección para la revisión mensual de archivo financiero:
+
+📄 Acceso al documento: https://gofile.io/d/7Figr1  
+📌 Clave de acceso: 1234
+
+Quedamos atentos a cualquier comentario.
+
+Saludos,  
+María Gómez  
+Asistente Administrativa  
+Finanzas Corporativas
+"""
+
+msg.attach(MIMEText(cuerpo, 'plain'))
+
+# 🚀 Enviar el correo
+try:
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+    server.send_message(msg)
+    server.quit()
+    print("[✔] Correo enviado con éxito.")
+except Exception as e:
+    print(f"[✘] Error al enviar el correo: {e}")
